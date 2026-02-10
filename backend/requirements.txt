@@ -2,3 +2,4 @@ flask
 flask-restx
 pytest
 flake8
+pymongo
