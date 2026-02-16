@@ -1,8 +1,12 @@
+import os
 from pymongo import MongoClient
 from pymongo.database import Database
 
-MONGO_URI = "mongodb://root:rootpassword@127.0.0.1:27017/?authSource=admin"
-DB_NAME = "kitchen"
+MONGO_URI = os.getenv(
+    "MONGO_URI",
+    "mongodb://root:rootpassword@127.0.0.1:27017/?authSource=admin"
+)
+DB_NAME = os.getenv("MONGO_DB_NAME", "kitchen")
 
 _client: MongoClient | None = None
 
