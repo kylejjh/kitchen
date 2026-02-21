@@ -4,10 +4,30 @@ from flask_restx import Api, Namespace, Resource
 from backend.app.db import ping_mongo
 from backend.app.features.recipes.routes import recipes_ns
 
+from flask_cors import CORS
+
 
 def create_app() -> Flask:
     app = Flask(__name__)
+    CORS(app)
     api = Api(app, title="Kitchen API", version="0.1")
+    
+    
+    # -----------------------------
+    # Demo endpoints (for React HW)
+    # -----------------------------
+
+    @app.get("/demo/one")
+    def demo_one():
+        return {"endpoint": "one", "ok": True}
+
+    @app.get("/demo/two")
+    def demo_two():
+        return {"endpoint": "two", "ok": True}
+
+    @app.get("/demo/three")
+    def demo_three():
+        return {"endpoint": "three", "ok": True}
 
     # -----------------------
     # Health namespace
