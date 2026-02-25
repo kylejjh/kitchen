@@ -3,6 +3,7 @@ from flask_restx import Api, Namespace, Resource
 
 from backend.app.db import ping_mongo
 from backend.app.features.recipes.routes import recipes_ns
+from backend.app.features.cuisines.routes import cuisines_ns
 
 from flask_cors import CORS
 
@@ -56,7 +57,7 @@ def create_app() -> Flask:
     api.add_namespace(db_ns, path="/db")
     api.add_namespace(health_ns, path="/health")
     api.add_namespace(recipes_ns, path="/recipes")
-
+    api.add_namespace(cuisines_ns, path="/cuisines")
 
     return app
 
