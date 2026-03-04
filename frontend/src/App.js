@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const API = "http://127.0.0.1:5000";  // IMPORTANT: not localhost
+const API = process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:5000";
 
 function App() {
   const [one, setOne] = useState(null);
