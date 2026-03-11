@@ -23,13 +23,17 @@ class Recipes(Resource):
     def post(self):
         data = request.get_json(silent=True) or {}
 
+        name = data.get("name")
+        if not isinstance(name, str) or not name.strip():
+            return {"error": "Field 'name' is required and must be a non-empty string."}, 400
+
         cuisine = data.get("cuisine", "")
         if cuisine is not None and not isinstance(cuisine, str):
             return {"error": "Field 'cuisine' must be a string."}, 400
 
         recipe = {
             "name": name.strip(),
-            "cuisine": data.get("cuisine", "").strip() if isinstance(data.get("cuisine", ""), str) else "",
+            "cuisine": cuisine.strip() if isinstance(cuisine, str) else "",
             "ingredients": data.get("ingredients", []),
             "steps": data.get("steps", []),
             "tags": data.get("tags", []),
