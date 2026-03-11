@@ -27,8 +27,13 @@ class Recipes(Resource):
         if not isinstance(name, str) or not name.strip():
             return {"error": "Field 'name' is required and must be a non-empty string."}, 400
 
+        cuisine = data.get("cuisine", "")
+        if cuisine is not None and not isinstance(cuisine, str):
+            return {"error": "Field 'cuisine' must be a string."}, 400
+
         recipe = {
             "name": name.strip(),
+            "cuisine": cuisine.strip() if isinstance(cuisine, str) else "",
             "ingredients": data.get("ingredients", []),
             "steps": data.get("steps", []),
             "tags": data.get("tags", []),
@@ -65,7 +70,7 @@ class RecipeById(Resource):
         if not isinstance(data, dict):
             return {"error": "Request body must be a JSON object."}, 400
 
-        allowed_fields = {"name", "ingredients", "steps", "tags"}
+        allowed_fields = {"name", "cuisine", "ingredients", "steps", "tags"}
         update = {}
 
         for key in data:
@@ -77,7 +82,13 @@ class RecipeById(Resource):
             if not isinstance(name, str) or not name.strip():
                 return {"error": "Field 'name' must be a non-empty string."}, 400
             update["name"] = name.strip()
-
+        
+        if "cuisine" in data:
+            cuisine = data["cuisine"]
+            if not isinstance(cuisine, str):
+                return {"error": "Field 'cuisine' must be a string."}, 400
+            update["cuisine"] = cuisine.strip()
+        
         for field in ("ingredients", "steps", "tags"):
             if field in data:
                 val = data[field]
