@@ -38,7 +38,6 @@ ingredient_update_model = ingredients_ns.model(
 
 
 def _to_public(doc: dict) -> dict:
-    """Convert Mongo document to API-safe dict."""
     return {
         "id": str(doc["_id"]),
         "name": doc.get("name", ""),
@@ -58,11 +57,9 @@ def _parse_object_id(id_str: str) -> ObjectId:
 class IngredientsCollection(Resource):
     @ingredients_ns.marshal_list_with(ingredient_model)
     def get(self):
-        return [
-            {"id": "1", "name": "Tomato", "category": "Vegetable"},
-            {"id": "2", "name": "Egg", "category": "Protein"},
-            {"id": "3", "name": "Chicken", "category": "Meat"},
-        ], 200
+        db = get_db()
+        docs = list(db.ingredients.find({}).sort("name", 1))
+        return [_to_public(d) for d in docs], 200
 
     @ingredients_ns.expect(ingredient_create_model, validate=True)
     @ingredients_ns.marshal_with(ingredient_model, code=201)
