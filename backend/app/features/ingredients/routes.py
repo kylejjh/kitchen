@@ -38,7 +38,6 @@ ingredient_update_model = ingredients_ns.model(
 
 
 def _to_public(doc: dict) -> dict:
-    """Convert Mongo document to API-safe dict."""
     return {
         "id": str(doc["_id"]),
         "name": doc.get("name", ""),

@@ -25,16 +25,13 @@ def _slugify(name: str) -> str:
 @cuisines_ns.route("")
 class Cuisines(Resource):
     def get(self):
-        db = get_db()
-
-        # Optional: filter by slug
-        slug = request.args.get("slug")
-        query = {}
-        if slug:
-            query["slug"] = slug.strip().lower()
-
-        docs = list(db.cuisines.find(query).sort("_id", -1))
-        return {"cuisines": [_serialize_cuisine(d) for d in docs]}, 200
+        return {
+            "cuisines": [
+                {"id": "1", "name": "Chinese", "slug": "chinese", "region": "East Asia"},
+                {"id": "2", "name": "Japanese", "slug": "japanese", "region": "East Asia"},
+                {"id": "3", "name": "Mexican", "slug": "mexican", "region": "North America"},
+            ]
+        }, 200
 
     def post(self):
         data = request.get_json(silent=True) or {}
