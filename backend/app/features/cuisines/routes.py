@@ -10,7 +10,16 @@ cuisines_ns = Namespace("cuisines", description="Cuisine management")
 
 def _serialize_cuisine(doc: dict) -> dict:
     doc["_id"] = str(doc["_id"])
-    return doc
+
+    return {
+        **doc,
+        "_links": {
+            "self": {"href": f"/cuisines/{doc['_id']}"},
+            "collection": {"href": "/cuisines"},
+            "options": {"href": "/cuisines/options"},
+            "recipes": {"href": f"/recipes?cuisine={doc.get('slug', '')}"},
+        },
+    }
 
 
 def _slugify(name: str) -> str:
@@ -20,6 +29,19 @@ def _slugify(name: str) -> str:
     # keep only letters, numbers, dashes
     s = "".join(ch for ch in s if ch.isalnum() or ch == "-")
     return s
+
+
+def _build_cuisine_option(doc: dict) -> dict:
+    cuisine_id = str(doc["_id"])
+    slug = doc.get("slug", "")
+    return {
+        "value": slug,
+        "label": doc.get("name", ""),
+        "_links": {
+            "self": {"href": f"/cuisines/{cuisine_id}"},
+            "recipes": {"href": f"/recipes?cuisine={slug}"},
+        },
+    }
 
 
 @cuisines_ns.route("")
@@ -34,7 +56,13 @@ class Cuisines(Resource):
             query["slug"] = slug.strip().lower()
 
         docs = list(db.cuisines.find(query).sort("_id", -1))
-        return {"cuisines": [_serialize_cuisine(d) for d in docs]}, 200
+        return {
+            "cuisines": [_serialize_cuisine(d) for d in docs],
+            "_links": {
+                "self": {"href": "/cuisines"},
+                "options": {"href": "/cuisines/options"},
+            },
+        }, 200
 
     def post(self):
         data = request.get_json(silent=True) or {}
@@ -71,7 +99,30 @@ class Cuisines(Resource):
 
         result = db.cuisines.insert_one(cuisine)
         created = db.cuisines.find_one({"_id": result.inserted_id})
-        return _serialize_cuisine(created), 201
+        return {
+            "cuisine": _serialize_cuisine(created),
+            "_links": {
+                "self": {"href": f"/cuisines/{str(created['_id'])}"},
+                "collection": {"href": "/cuisines"},
+                "options": {"href": "/cuisines/options"},
+            },
+        }, 201
+
+
+@cuisines_ns.route("/options")
+class CuisineOptions(Resource):
+    def get(self):
+        db = get_db()
+        docs = list(db.cuisines.find().sort("name", 1))
+
+        return {
+            "field": "cuisine",
+            "options": [_build_cuisine_option(d) for d in docs],
+            "_links": {
+                "self": {"href": "/cuisines/options"},
+                "collection": {"href": "/cuisines"},
+            },
+        }, 200
 
 
 @cuisines_ns.route("/<string:cuisine_id>")
@@ -152,4 +203,11 @@ class CuisineById(Resource):
         if result.deleted_count == 0:
             return {"error": "Cuisine not found."}, 404
 
-        return {"deleted": True, "id": cuisine_id}, 200
+        return {
+            "deleted": True,
+            "id": cuisine_id,
+            "_links": {
+                "collection": {"href": "/cuisines"},
+                "options": {"href": "/cuisines/options"},
+            },
+        }, 200

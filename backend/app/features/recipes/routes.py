@@ -10,7 +10,17 @@ recipes_ns = Namespace("recipes", description="Recipe management")
 
 def _serialize_recipe(doc: dict) -> dict:
     doc["_id"] = str(doc["_id"])
-    return doc
+
+    return {
+        **doc,
+        "_links": {
+            "self": {"href": f"/recipes/{doc['_id']}"},
+            "collection": {"href": "/recipes"},
+            "form": {"href": "/recipes/form"},
+            "cuisine_options": {"href": "/cuisines/options"},
+            "ingredient_options": {"href": "/ingredients/options"},
+        },
+    }
 
 
 @recipes_ns.route("")
@@ -18,7 +28,15 @@ class Recipes(Resource):
     def get(self):
         db = get_db()
         docs = list(db.recipes.find().sort("_id", -1))
-        return {"recipes": [_serialize_recipe(d) for d in docs]}, 200
+        return {
+            "recipes": [_serialize_recipe(d) for d in docs],
+            "_links": {
+                "self": {"href": "/recipes"},
+                "create_form": {"href": "/recipes/form"},
+                "cuisine_options": {"href": "/cuisines/options"},
+                "ingredient_options": {"href": "/ingredients/options"},
+            },
+        }, 200
 
     def post(self):
         data = request.get_json(silent=True) or {}
@@ -42,7 +60,13 @@ class Recipes(Resource):
         db = get_db()
         result = db.recipes.insert_one(recipe)
         created = db.recipes.find_one({"_id": result.inserted_id})
-        return _serialize_recipe(created), 201
+        return {
+            "recipe": _serialize_recipe(created),
+            "_links": {
+                "self": {"href": f"/recipes/{str(created['_id'])}"},
+                "collection": {"href": "/recipes"},
+            },
+        }, 201
 
 
 @recipes_ns.route("/<string:recipe_id>")
@@ -57,7 +81,6 @@ class RecipeById(Resource):
         doc = db.recipes.find_one({"_id": oid})
         if doc is None:
             return {"error": "Recipe not found."}, 404
-
         return _serialize_recipe(doc), 200
 
     def patch(self, recipe_id: str):
@@ -118,4 +141,61 @@ class RecipeById(Resource):
         if result.deleted_count == 0:
             return {"error": "Recipe not found."}, 404
 
-        return {"deleted": True, "id": recipe_id}, 200
+        return {
+            "deleted": True,
+            "id": recipe_id,
+            "_links": {
+                "collection": {"href": "/recipes"},
+                "create_form": {"href": "/recipes/form"},
+            },
+        }, 200
+
+
+@recipes_ns.route("/form")
+class RecipeForm(Resource):
+    def get(self):
+        return {
+            "name": "recipe_form",
+            "method": "POST",
+            "action": "/recipes",
+            "fields": [
+                {
+                    "name": "name",
+                    "label": "Recipe Name",
+                    "type": "text",
+                    "required": True,
+                },
+                {
+                    "name": "cuisine",
+                    "label": "Cuisine",
+                    "type": "select",
+                    "required": True,
+                    "options_url": "/cuisines/options",
+                },
+                {
+                    "name": "ingredients",
+                    "label": "Ingredients",
+                    "type": "multiselect",
+                    "required": True,
+                    "options_url": "/ingredients/options",
+                },
+                {
+                    "name": "steps",
+                    "label": "Steps",
+                    "type": "list",
+                    "required": True,
+                },
+                {
+                    "name": "tags",
+                    "label": "Tags",
+                    "type": "list",
+                    "required": False,
+                },
+            ],
+            "_links": {
+                "self": {"href": "/recipes/form"},
+                "submit": {"href": "/recipes", "method": "POST"},
+                "cuisine_options": {"href": "/cuisines/options"},
+                "ingredient_options": {"href": "/ingredients/options"},
+            },
+        }, 200

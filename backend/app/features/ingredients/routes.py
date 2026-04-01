@@ -38,12 +38,30 @@ ingredient_update_model = ingredients_ns.model(
 
 
 def _to_public(doc: dict) -> dict:
-    """Convert Mongo document to API-safe dict."""
+    """Convert Mongo document to API-safe dict with HATEOAS."""
     return {
         "id": str(doc["_id"]),
         "name": doc.get("name", ""),
         "category": doc.get("category"),
         "notes": doc.get("notes"),
+        "_links": {
+            "self": {"href": f"/ingredients/{str(doc['_id'])}"},
+            "collection": {"href": "/ingredients"},
+            "options": {"href": "/ingredients/options"},
+            "recipes": {"href": f"/recipes?ingredient={str(doc['_id'])}"},
+        },
+    }
+
+
+def _build_option(doc: dict) -> dict:
+    ingredient_id = str(doc["_id"])
+    return {
+        "value": ingredient_id,
+        "label": doc.get("name", ""),
+        "_links": {
+            "self": {"href": f"/ingredients/{ingredient_id}"},
+            "recipes": {"href": f"/recipes?ingredient={ingredient_id}"},
+        },
     }
 
 
@@ -56,14 +74,18 @@ def _parse_object_id(id_str: str) -> ObjectId:
 
 @ingredients_ns.route("")
 class IngredientsCollection(Resource):
-    @ingredients_ns.marshal_list_with(ingredient_model)
     def get(self):
         db = get_db()
         docs = list(db.ingredients.find({}).sort("name", 1))
-        return [_to_public(d) for d in docs], 200
+        return {
+            "ingredients": [_to_public(d) for d in docs],
+            "_links": {
+                "self": {"href": "/ingredients"},
+                "options": {"href": "/ingredients/options"},
+            },
+        }, 200
 
     @ingredients_ns.expect(ingredient_create_model, validate=True)
-    @ingredients_ns.marshal_with(ingredient_model, code=201)
     def post(self):
         payload = request.get_json(force=True) or {}
         name = (payload.get("name") or "").strip()
@@ -79,12 +101,34 @@ class IngredientsCollection(Resource):
         db = get_db()
         result = db.ingredients.insert_one(doc)
         saved = db.ingredients.find_one({"_id": result.inserted_id})
-        return _to_public(saved), 201
+
+        return {
+            "ingredient": _to_public(saved),
+            "_links": {
+                "self": {"href": f"/ingredients/{str(saved['_id'])}"},
+                "collection": {"href": "/ingredients"},
+            },
+        }, 201
+
+
+@ingredients_ns.route("/options")
+class IngredientOptions(Resource):
+    def get(self):
+        db = get_db()
+        docs = list(db.ingredients.find({}).sort("name", 1))
+
+        return {
+            "field": "ingredients",
+            "options": [_build_option(d) for d in docs],
+            "_links": {
+                "self": {"href": "/ingredients/options"},
+                "collection": {"href": "/ingredients"},
+            },
+        }, 200
 
 
 @ingredients_ns.route("/<string:ingredient_id>")
 class IngredientItem(Resource):
-    @ingredients_ns.marshal_with(ingredient_model)
     def get(self, ingredient_id: str):
         try:
             oid = _parse_object_id(ingredient_id)
@@ -98,7 +142,6 @@ class IngredientItem(Resource):
         return _to_public(doc), 200
 
     @ingredients_ns.expect(ingredient_update_model, validate=True)
-    @ingredients_ns.marshal_with(ingredient_model)
     def put(self, ingredient_id: str):
         try:
             oid = _parse_object_id(ingredient_id)
@@ -141,4 +184,12 @@ class IngredientItem(Resource):
         res = db.ingredients.delete_one({"_id": oid})
         if res.deleted_count == 0:
             ingredients_ns.abort(404, "Ingredient not found")
-        return {"deleted": True, "id": ingredient_id}, 200
+
+        return {
+            "deleted": True,
+            "id": ingredient_id,
+            "_links": {
+                "collection": {"href": "/ingredients"},
+                "options": {"href": "/ingredients/options"},
+            },
+        }, 200
