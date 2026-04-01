@@ -61,6 +61,34 @@ def create_app() -> Flask:
     api.add_namespace(cuisines_ns, path="/cuisines")
     api.add_namespace(ingredients_ns, path="/ingredients")
 
+    # -----------------------
+    # HATEOAS form endpoint
+    # -----------------------
+    @app.get("/form")
+    def form_descriptor():
+        return {
+            "title": "Kitchen Form",
+            "fields": [
+                {
+                    "name": "cuisine",
+                    "label": "Choose a cuisine",
+                    "type": "select",
+                    "options_url": f"{request.host_url.rstrip('/')}/cuisines",
+                },
+                {
+                    "name": "ingredient",
+                    "label": "Choose an ingredient",
+                    "type": "select",
+                    "options_url": f"{request.host_url.rstrip('/')}/ingredients",
+                },
+            ],
+            "_links": {
+                "self": {"href": f"{request.host_url.rstrip('/')}/form"},
+                "cuisines": {"href": f"{request.host_url.rstrip('/')}/cuisines"},
+                "ingredients": {"href": f"{request.host_url.rstrip('/')}/ingredients"},
+            },
+        }, 200
+
     return app
 
 

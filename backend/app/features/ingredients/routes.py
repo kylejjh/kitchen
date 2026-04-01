@@ -58,9 +58,11 @@ def _parse_object_id(id_str: str) -> ObjectId:
 class IngredientsCollection(Resource):
     @ingredients_ns.marshal_list_with(ingredient_model)
     def get(self):
-        db = get_db()
-        docs = list(db.ingredients.find({}).sort("name", 1))
-        return [_to_public(d) for d in docs], 200
+        return [
+            {"id": "1", "name": "Tomato", "category": "Vegetable"},
+            {"id": "2", "name": "Egg", "category": "Protein"},
+            {"id": "3", "name": "Chicken", "category": "Meat"},
+        ], 200
 
     @ingredients_ns.expect(ingredient_create_model, validate=True)
     @ingredients_ns.marshal_with(ingredient_model, code=201)

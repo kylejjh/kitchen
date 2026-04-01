@@ -3,39 +3,90 @@ import { useEffect, useState } from "react";
 const API = process.env.REACT_APP_API_BASE_URL || "http://127.0.0.1:5000";
 
 function App() {
-  const [one, setOne] = useState(null);
-  const [two, setTwo] = useState(null);
-  const [three, setThree] = useState(null);
+  const [cuisines, setCuisines] = useState([]);
+  const [ingredients, setIngredients] = useState([]);
+
+  const [selectedCuisine, setSelectedCuisine] = useState("");
+  const [selectedIngredient, setSelectedIngredient] = useState("");
+
   const [error, setError] = useState("");
 
   useEffect(() => {
     Promise.all([
-      fetch(`${API}/demo/one`).then(res => res.json()),
-      fetch(`${API}/demo/two`).then(res => res.json()),
-      fetch(`${API}/demo/three`).then(res => res.json()),
+      fetch(`${API}/cuisines`).then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to load cuisines");
+        }
+        return res.json();
+      }),
+      fetch(`${API}/ingredients`).then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to load ingredients");
+        }
+        return res.json();
+      }),
     ])
-      .then(([a, b, c]) => {
-        setOne(a);
-        setTwo(b);
-        setThree(c);
+      .then(([cuisineData, ingredientData]) => {
+        setCuisines(cuisineData.cuisines || []);
+        setIngredients(Array.isArray(ingredientData) ? ingredientData : []);
       })
-      .catch(err => setError(err.toString()));
+      .catch((err) => setError(err.toString()));
   }, []);
 
   return (
     <div style={{ padding: 20 }}>
-      <h1>Kitchen API Demo (3 endpoints)</h1>
+      <h1>Kitchen Form</h1>
+      <p>Dropdown options are loaded from backend endpoints.</p>
 
       {error && <p style={{ color: "red" }}>{error}</p>}
 
-      <h2>/demo/one</h2>
-      <pre>{JSON.stringify(one, null, 2)}</pre>
+      <div style={{ marginBottom: 20 }}>
+        <label htmlFor="cuisine-select"><strong>Choose a cuisine:</strong></label>
+        <br />
+        <select
+          id="cuisine-select"
+          value={selectedCuisine}
+          onChange={(e) => setSelectedCuisine(e.target.value)}
+          style={{ marginTop: 8, padding: 6, minWidth: 220 }}
+        >
+          <option value="">-- Select a cuisine --</option>
+          {cuisines.map((cuisine) => (
+            <option key={cuisine._id || cuisine.id || cuisine.slug} value={cuisine.slug}>
+              {cuisine.name}
+            </option>
+          ))}
+        </select>
+      </div>
 
-      <h2>/demo/two</h2>
-      <pre>{JSON.stringify(two, null, 2)}</pre>
+      <div style={{ marginBottom: 20 }}>
+        <label htmlFor="ingredient-select"><strong>Choose an ingredient:</strong></label>
+        <br />
+        <select
+          id="ingredient-select"
+          value={selectedIngredient}
+          onChange={(e) => setSelectedIngredient(e.target.value)}
+          style={{ marginTop: 8, padding: 6, minWidth: 220 }}
+        >
+          <option value="">-- Select an ingredient --</option>
+          {ingredients.map((ingredient) => (
+            <option key={ingredient.id} value={ingredient.name}>
+              {ingredient.name}
+            </option>
+          ))}
+        </select>
+      </div>
 
-      <h2>/demo/three</h2>
-      <pre>{JSON.stringify(three, null, 2)}</pre>
+      <h2>Selected Values</h2>
+      <pre>
+        {JSON.stringify(
+          {
+            cuisine: selectedCuisine,
+            ingredient: selectedIngredient,
+          },
+          null,
+          2
+        )}
+      </pre>
     </div>
   );
 }
