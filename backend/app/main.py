@@ -1,24 +1,22 @@
 from flask import Flask, request
 from flask_restx import Api, Namespace, Resource
+from flask_cors import CORS
 
 from backend.app.db import ping_mongo
 from backend.app.features.recipes.routes import recipes_ns
 from backend.app.features.cuisines.routes import cuisines_ns
 from backend.app.features.ingredients.routes import ingredients_ns
-
-from flask_cors import CORS
+from backend.app.features.dev.routes import dev_ns
 
 
 def create_app() -> Flask:
     app = Flask(__name__)
     CORS(app)
     api = Api(app, title="Kitchen API", version="0.1")
-    
-    
+
     # -----------------------------
     # Demo endpoints (for React HW)
     # -----------------------------
-
     @app.get("/demo/one")
     def demo_one():
         return {"endpoint": "one", "ok": True}
@@ -45,13 +43,13 @@ def create_app() -> Flask:
     # DB namespace
     # -----------------------
     db_ns = Namespace("db", description="Database check")
-    
+
     @db_ns.route("/health")
     class DbHealth(Resource):
         def get(self):
             ok = ping_mongo()
             return {"mongo": "ok" if ok else "down"}, 200 if ok else 500
-            
+
     # -----------------------
     # Register namespaces
     # -----------------------
@@ -60,6 +58,7 @@ def create_app() -> Flask:
     api.add_namespace(recipes_ns, path="/recipes")
     api.add_namespace(cuisines_ns, path="/cuisines")
     api.add_namespace(ingredients_ns, path="/ingredients")
+    api.add_namespace(dev_ns, path="/dev")  # ✅ correct place
 
     # -----------------------
     # HATEOAS form endpoint
