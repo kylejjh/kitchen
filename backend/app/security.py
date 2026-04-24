@@ -1,7 +1,6 @@
 from flask import request
 from functools import wraps
 
-# simple API key (you can change this)
 API_KEY = "123456"
 
 def require_api_key(func):
