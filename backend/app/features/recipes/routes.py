@@ -5,6 +5,8 @@ from flask_restx import Namespace, Resource
 from bson import ObjectId
 from backend.app.db import get_db
 
+from backend.app.security import require_api_key
+
 recipes_ns = Namespace("recipes", description="Recipe management")
 
 
